@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Cupcake Catcher</title>
+</head>
+<body>
+	<canvas style="border:2px solid black" id="canvas"></canvas>
+	<script>
+		//Canvas
+		var canvas = document.querySelector("#canvas");
+		var ctx = canvas.getContext("2d");
+		const WIDTH = 500;
+		const HEIGHT = 500;
+		canvas.width = WIDTH;
+		canvas.height = HEIGHT;
+
+		//Images
+		var catcherOne = new Image();
+		var catcherTwo = new Image();
+		var catcherThree = new Image();
+		var catcherFour = new Image();
+		var background = new Image();
+		var blood = new Image();
+		var tile = new Image();
+		var food = new Image();
+
+		//Global Variables
+		var score = 0;
+		var level = 0;
+		var lives = 0;
+		var animation = 0;
+		var foodTimer = 0;
+		var gameOver = false;
+		var paused;
+		var intervalVar;
+		var foodList = [];
+		var tileList = [];
+		var foodDrop = [0,50,100,150,200,250,300,350,400,450]; //X Food Positions
+
+		//Objects
+		var tileObject = {
+			width: 50,
+			height: 20
+		}
+
+		var foodObject = {
+			width: 50,
+			height: 50,
+			speed: 3
+		}
+
+		var catcher = { //Player
+			x: 100,
+			y: 350,
+			width: 30,
+			height: 50,
+			jump: 0, //Jump height
+			jumpUnit: 5, //Jump velocity
+			onair: false,
+			speed: 0, //Movement velocity
+			leftPressed: false,
+			rightPressed: false,
+			gravity: 10,
+			safe: true
+		}
+
+		sound = function(src){
+			this.sound = document.createElement("audio");
+			this.sound.src = src;
+			this.sound.setAttribute("preload","auto");
+			this.sound.setAttribute("controls","none");
+			this.sound.style.display = "none";
+			document.body.appendChild(this.sound);
+
+			this.play = function(){
+				this.sound.play();
+			}
+
+			this.pause = function(){
+				this.sound.pause();
+			}
+		}
+
+		var eatingSound = new sound("sound/eat.mp3");
+		var droppingSound = new sound("sound/drop.mp3");
+
+		background.onload = function(){ //Once background loads, load the rest of the game
+			blood.onload = function(){
+				catcherOne.onload = function() {
+					catcherTwo.onload = function(){
+						catcherThree.onload = function(){
+							catcherFour.onload = function(){
+								food.onload = function(){
+									tile.onload = function(){
+										ctx.drawImage(background,0,0,WIDTH,HEIGHT);
+										ctx.strokeStyle = "white";
+										ctx.font = "30px Calibri";
+										ctx.strokeText("Click Here to Start",WIDTH/4,HEIGHT/2);
+
+										// Game Area
+										drawObject = function(object,x,y,width,height){
+											ctx.drawImage(object,x,y,width,height);
+										}
+
+										document.getElementById("canvas").onmousedown = function(){
+											if(!gameOver){
+												clearInterval(intervalVar);
+											}
+											startGame();
+										}
+
+										document.onkeydown = function(e){
+											if(e.keyCode == 65 && catcher.x > 0){ //LEFT "A"
+												catcher.speed = -5;
+												catcher.leftPressed = true;
+											}
+											if(e.keyCode == 68 && catcher.x < WIDTH - catcher.width){ //RIGHT "D"
+												catcher.speed = -5;
+												catcher.rightPressed = true;
+											}
+											if(e.keyCode == 87 && !catcher.onair && catcher.y == 350){ //JUMP "SPACE"
+												catcher.jump = 100;
+												catcher.onair = true;
+											}
+											if(e.keyCode == 32){
+												if(paused){
+													paused = false;
+												} else {
+													paused = true;
+												}
+											}
+										}
+
+										document.onkeyup = function(e){
+											if(e.keyCode == 65){ //LEFT A
+												catcher.leftPressed = false;
+											}
+											if(e.keyCode == 68){ //RIGHT D
+												catcher.rightPressed = false;
+											}
+										}
+
+										//CHECK CONDITIONS
+										foodCatcherCondition = function(f){
+											return ((f.x < catcher.x + catcher.width) && (catcher.x < f.x + foodObject.width) 
+												&& (f.y < catcher.y + catcher.height) && (catcher.y < f.y + foodObject.height));
+										}
+
+										foodTileCondition = function(f,t){
+											return ((f.x < t.x + tileObject.width) && (t.x < f.x + foodObject.width) 
+												&& (t.y < t.y + tileObject.height) && (t.y < f.y + foodObject.height));
+										}
+
+										catcherTileCollision = function(t){
+											return((catcher.x < t.x + tileObject.width) 
+												&&(t.x <= catcher.x + catcher.width)
+												&& (catcher.y + catcher.height <= t.y));
+										}
+
+										jump = function(){
+											//Moving Up
+											if(catcher.jump > 0 && catcher.onair){ //CATCHER.JUMP CHANGED IN DOCUMENT.KEYDOWN CONDITION
+												catcher.y -= catcher.jumpUnit; //Y position increase by jump unit
+												catcher.jump -= catcher.jumpUnit; // Jump height decrease by jump unit, to reach maximum jump height (so the catcher doesn't keep lifting)
+											}
+											//Moving Down
+											if(catcher.jump <= 0 && catcher.jump > -100 && catcher.onair){
+												catcher.y += catcher.jumpUnit;
+												catcher.jump -= catcher.jumpUnit;
+											}
+											if(catcher.jump <= -100 && catcher.onair){
+												catcher.onair = false;
+											}
+										}
+
+										updateFoodPosition = function(){
+											for(var i in foodList){ //Delete food when out of canvas height
+												if(foodList[i].y > HEIGHT){
+													foodList.splice(i,1);//Delete elements, start position i, delete 1 element
+													lives--;
+													if(lives == 0){
+														gameEnd();
+													}
+												} else {
+													foodList[i].y += foodObject.speed;
+												}
+
+											}
+										}
+
+										updateCatcherPosition = function(){
+											if(catcher.leftPressed && catcher.x > 0){
+												catcher.x += catcher.speed;
+											}
+											if(catcher.rightPressed && catcher.x < WIDTH - catcher.width){
+												catcher.x -= catcher.speed;
+											}
+											if(catcher.y > HEIGHT - catcher.height) {
+												droppingSound.play();
+												catcher.y = HEIGHT - catcher.height;
+												gameOver = true;
+											}
+
+										}
+
+										gameEnd = function(){
+											ctx.globalAlpha = 0.55;
+											drawObject(blood, 100,100,300,300);
+											ctx.globalAlpha = 1.0;
+											ctx.strokeStyle = "white";
+											ctx.font = "30px Calibri";
+											ctx.strokeText("Game Over", 180,200);
+											ctx.strokeText("Click to Restart",160,HEIGHT/2);
+											clearInterval(intervalVar);
+										}
+
+										updatePosition = function(){
+											if(!paused){
+												ctx.clearRect(0,0,WIDTH,HEIGHT);
+												drawObject(background,0,0,WIDTH,HEIGHT);
+												foodTimer++;
+												if(foodTimer > level){
+													foodList.push({x:foodDrop[Math.round(Math.random() * 9)],y:0});
+													foodTimer = 0;
+												}
+												if(gameOver == true){
+													drawObject(catcherThree,catcher.x,470,50,30);
+													gameEnd();
+												}
+												else if(catcher.onair){
+													drawObject(catcherFour,catcher.x,catcher.y,catcher.width,catcher.height);
+												}
+												else if(animation == 0){
+													drawObject(catcherTwo,catcher.x,catcher.y,catcher.width,catcher.height);
+													animation = 1;
+												} else {
+													drawObject(catcherOne,catcher.x,catcher.y,catcher.width,catcher.height);
+													animation = 0;
+												}
+
+												for(var i in foodList){
+													drawObject(food,foodList[i].x,foodList[i].y,foodObject.width,foodObject.height);
+												}
+
+												for(var i=0;i<tileList.length;i++){
+													drawObject(tile,tileList[i].x,tileList[i].y,tileObject.width,tileObject.height);
+												};
+
+												for(var i in foodList){
+													if(foodCatcherCondition(foodList[i])){
+														score++;
+														eatingSound.play();
+														if(score % 2 == 0){
+															level--;
+														}
+														foodList.splice(i,1);
+													}
+												}
+
+												for(var i in foodList){
+													for(var j in tileList){
+														if(foodTileCondition(foodList[i],tileList[j])){
+															tileList.splice(j,1);
+														}
+													}
+												}
+
+												if(!catcher.onair){
+													for(var i in tileList){
+														if(catcherTileCollision(tileList[i])){
+															catcher.safe = true;
+															break;
+														}
+														catcher.safe = false;
+													}
+													if(!catcher.safe){
+														catcher.y += catcher.gravity;
+													}
+												}
+
+												drawObject(food,440,10,20,20);
+												ctx.fillStyle = "white";
+												ctx.font = "20px Calibri";
+												ctx.fillText(score,465,27);
+												ctx.fillText("Level: " + (100 - level + 1),10,27);
+												ctx.fillText("Lives: " + lives,350,27);
+
+												updateFoodPosition();
+												updateCatcherPosition();
+												jump();
+											}
+											else {
+												ctx.strokeStyle = "white";
+												ctx.font = "30px Calibri";
+												ctx.strokeText("Game Paused",160,HEIGHT/2);
+											}
+										}
+
+											startGame = function(){
+												score = 0;
+												lives = 5;
+												level = 100;
+												catcher.x = 100;
+												catcher.y = 350;
+												catcher.onair = false;
+												catcher.leftPressed = false;
+												catcher.rightPressed = false;
+												catcher.safe = true;
+												animation = 0;
+												foodTimer = 0;
+												gameOver = false;
+												tileList = [];
+												foodList = [];
+
+
+												for(var i=0; i<=9; i++){
+													tileList.push({x: i * 50, y:400});
+												};
+
+												intervalVar = setInterval(updatePosition,10);
+										}
+									}
+									tile.src = "images/tile.png";
+								}
+								food.src = "images/food.png";
+							}
+							catcherFour.src = "images/catcher4.png";
+						}
+						catcherThree.src = "images/catcher3.png";
+					}
+					catcherTwo.src = "images/catcher2.png";
+				}
+				catcherOne.src = "images/catcher1.png";
+			}
+			blood.src = "images/blood.png";
+		}
+
+		background.src = "images/background.jpg";
+
+	</script>
+</body>
+</html>

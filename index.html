@@ -3,7 +3,12 @@
 <head>
 	<title>Cupcake Catcher</title>
 </head>
-<body>
+<body style="background: url(https://www.cognostics.de/assets/main-top-graphic.jpg) no-repeat;background-attachment: scroll;background-clip: border-box;background-size: cover;color: white; font-size: 52;font-family: 'Roboto',sans-serif;">
+	<div style="margin: 20px;">
+	<a href="https://www.cognostics.de/">
+		<img src="https://www.cognostics.de/assets/logo-white.png" class="logo" alt="" style="width: 140px;">
+	</a>
+	<h1>Girls' Day 2020</h1>
 	<canvas style="border:2px solid black" id="canvas"></canvas>
 	<script>
 		//Canvas
@@ -110,19 +115,19 @@
 										}
 
 										document.onkeydown = function(e){
-											if(e.keyCode == 65 && catcher.x > 0){ //LEFT "A"
+											if((e.keyCode == 65 || e.keyCode == 37) && catcher.x > 0){ //LEFT "A"
 												catcher.speed = -5;
 												catcher.leftPressed = true;
 											}
-											if(e.keyCode == 68 && catcher.x < WIDTH - catcher.width){ //RIGHT "D"
+											if((e.keyCode == 68 || e.keyCode == 39) && catcher.x < WIDTH - catcher.width){ //RIGHT "D"
 												catcher.speed = -5;
 												catcher.rightPressed = true;
 											}
-											if(e.keyCode == 87 && !catcher.onair && catcher.y == 350){ //JUMP "SPACE"
+											if((e.keyCode == 87 || e.keyCode == 38 || e.keyCode == 32) && !catcher.onair && catcher.y == 350){ //JUMP "SPACE"
 												catcher.jump = 100;
 												catcher.onair = true;
 											}
-											if(e.keyCode == 32){
+											if(e.keyCode == 80){
 												if(paused){
 													paused = false;
 												} else {
@@ -131,12 +136,37 @@
 											}
 										}
 
+										document.ontouchstart = function(e){
+											var xPos = e.touches[0].pageX
+											var xPercent = xPos / document.body.clientWidth;
+											if (xPercent > 0.5){
+												catcher.speed = -5;
+												catcher.rightPressed = true;
+											}
+											if (xPercent <= 0.5){
+												catcher.speed = -5;
+												catcher.leftPressed = true;
+											}
+										}
+										
+
 										document.onkeyup = function(e){
 											if(e.keyCode == 65){ //LEFT A
 												catcher.leftPressed = false;
 											}
 											if(e.keyCode == 68){ //RIGHT D
 												catcher.rightPressed = false;
+											}
+										}
+
+										document.ontouchend = function(e){
+											var xPos = e.pageX
+											var xPercent = xPos / document.body.clientWidth;
+											if (xPercent > 0.5){
+												catcher.rightPressed = false;
+											}
+											if (xPercent <= 0.5){
+												catcher.leftPressed = false;
 											}
 										}
 
@@ -230,11 +260,12 @@
 												else if(catcher.onair){
 													drawObject(catcherFour,catcher.x,catcher.y,catcher.width,catcher.height);
 												}
-												else if(animation == 0){
+												//else if(animation == 0){
+												//	drawObject(catcherTwo,catcher.x,catcher.y,catcher.width,catcher.height);
+												//	animation = 1;
+												//} 
+												else {
 													drawObject(catcherTwo,catcher.x,catcher.y,catcher.width,catcher.height);
-													animation = 1;
-												} else {
-													drawObject(catcherOne,catcher.x,catcher.y,catcher.width,catcher.height);
 													animation = 0;
 												}
 
@@ -338,5 +369,6 @@
 		background.src = "images/background.jpg";
 
 	</script>
+	</div>
 </body>
 </html>

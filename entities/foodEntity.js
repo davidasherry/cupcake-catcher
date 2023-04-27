@@ -15,7 +15,7 @@ const FoodTypes = Object.freeze({
     CUPCAKE: {
         name: 'cupcake',
         value: 1,
-        weight: 3 // TODO TASK - try changing the weight of a cupcake to see how it affects the game
+        weight: 4 // TODO TASK - try changing the weight of a cupcake to see how it affects the game
     },
     FRUIT: {
         name: 'fruit',

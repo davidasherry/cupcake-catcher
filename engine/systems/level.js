@@ -75,6 +75,9 @@ export class LevelSystem {
 
             return true;
         }
+        if (GlobalGameState.current.score > 20 && SceneManager.currentScene.name === GlobalConfig.SECOND_SCENE_NAME){
+            
+        }
 
         return false;
 

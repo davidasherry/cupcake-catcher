@@ -70,9 +70,11 @@ export class LevelSystem {
 
             return true;
         }
-        /*
-         * TODO TASK - Add a level transition to the third level. Decide at how many points the level should change.
-         */
+        if (GlobalGameState.current.score > 4 && SceneManager.currentScene.name === GlobalConfig.SECOND_SCENE_NAME) {
+            LevelSystem.switchLevel(GlobalConfig.THIRD_SCENE_NAME);
+
+            return true;
+        }
 
         return false;
 
